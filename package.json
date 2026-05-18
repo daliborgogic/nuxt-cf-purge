@@ -1,6 +1,6 @@
 {
     "name": "nuxt-cf-purge",
-    "version": "1.2.2",
+    "version": "1.4.2",
     "description": "Blazing fast, parallel-chunked Cloudflare Edge Cache purger for Nuxt 4 / Nitro",
     "keywords": [
         "nuxt",
