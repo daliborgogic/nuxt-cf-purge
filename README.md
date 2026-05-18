@@ -10,7 +10,9 @@ Blazing fast, parallel-chunked Cloudflare Edge Cache purger for Nuxt 4 and Nitro
 - 🚀 **Parallel Execution:** Purges multiple batches concurrently for maximum performance.
 - 📦 **Automatic Chunking:** Automatically splits large URL lists into batches of 100 to respect Cloudflare API limits.
 - 🧹 **Build-Time Auto Purge:** Automatically reads your build manifest and purges new assets from Cloudflare upon build completion.
-- 🛡️ **Type Safe:** Fully typed `purgeCache` helper added directly to the H3 event context.
+- 🏷️ **Cache-Tag Support:** Purge entire categories of content using Cloudflare Cache-Tags (Enterprise/Business).
+- 🪄 **Self-Healing Cache:** Automated route-to-cache mapping triggers purges when specific API routes are hit.
+- 🛡️ **Type Safe:** Fully typed helpers added directly to the H3 event context.
 - 🔧 **Zero Config:** Falls back to standard Cloudflare environment variables out of the box.
 - 🧪 **Test-Ready:** Includes a configurable endpoint for local mocking and integration testing.
 
@@ -57,9 +59,17 @@ export default defineNuxtConfig({
   cfPurge: {
     zoneId: 'your-zone-id',
     apiToken: 'your-api-token',
-    // Required for Build-Time Auto Purge
     baseURL: 'https://example.com',
-    autoPurge: true
+    autoPurge: true,
+    checkHealth: true, // Verify credentials on startup
+    invalidations: [
+      { 
+        route: '/api/posts/**', 
+        methods: ['POST', 'PUT', 'DELETE'], 
+        purgeUrls: ['/blog', '/api/posts'],
+        purgeTags: ['all-posts']
+      }
+    ]
   }
 })
 ```
@@ -85,41 +95,54 @@ export default defineNuxtConfig({
 
 ## Usage
 
-The module injects a `purgeCache` function into the Nitro event context. You can use it in any server route or middleware:
+The module injects several helpers into the Nitro event context.
+
+### URL Purging
+```typescript
+await event.context.purgeCache(['https://example.com/page-1'])
+```
+
+### Cache-Tag Purging (Enterprise/Business)
+```typescript
+await event.context.purgeTags(['blog-posts', 'user-profile'])
+```
+
+### Global Purge (Nuke Everything)
+```typescript
+await event.context.purgeEverything()
+```
+
+## Smart Invalidations (The "Self-Healing" Cache)
+
+You can automate your cache management by defining `invalidations` in your config. This eliminates the need to manually call purge helpers inside your business logic.
 
 ```typescript
-// server/api/purge.ts
-export default defineEventHandler(async (event) => {
-  const urls = [
-    'https://example.com/styles.css',
-    'https://example.com/logo.png'
+cfPurge: {
+  invalidations: [
+    {
+      // Matches /api/posts and /api/posts/123
+      route: '/api/posts/**',
+      // Triggers for these HTTP methods (defaults to all mutating methods)
+      methods: ['POST', 'PUT', 'DELETE'],
+      // URLs to purge when the route is hit
+      purgeUrls: ['/blog', '/api/posts'],
+      // Tags to purge
+      purgeTags: ['posts-archive']
+    }
   ]
-
-  const success = await event.context.purgeCache(urls)
-
-  return {
-    purged: success
-  }
-})
+}
 ```
 
-### Automatic Chunking
-If you pass more than 100 URLs, the module will automatically split them into batches of 100 and send the requests in parallel to Cloudflare.
-
-```typescript
-// This will trigger 3 parallel API calls to Cloudflare
-const massiveList = Array.from({ length: 250 }, (_, i) => `https://example.com/${i}`)
-await event.context.purgeCache(massiveList)
-```
-
-## Configuration
+## Build-Time Auto Purge
 
 | Option | Environment Variable | Description |
 | --- | --- | --- |
 | `zoneId` | `CLOUDFLARE_ZONE_ID` | Your Cloudflare Zone ID. |
 | `apiToken` | `CLOUDFLARE_API_TOKEN` | A Cloudflare API Token with `Zone.Cache Purge` permissions. |
 | `autoPurge` | - | Enable automatic purging on build completion (default: `false`). |
-| `baseURL` | `CF_PURGE_BASE_URL` | Your production domain (required for `autoPurge`). |
+| `baseURL` | `CF_PURGE_BASE_URL` | Your production domain (required for `autoPurge` and `invalidations`). |
+| `checkHealth` | - | Verify API token validity during Nitro startup (default: `false`). |
+| `invalidations` | - | Array of rules for automated route-triggered purges. |
 | `endpoint` | - | Custom API endpoint (ignored in production; used for testing). |
 
 ## Error Handling

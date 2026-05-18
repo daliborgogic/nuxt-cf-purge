@@ -2,12 +2,22 @@ import { defineNuxtModule, addServerPlugin, createResolver } from '@nuxt/kit'
 import { defu } from 'defu'
 import { $fetch } from 'ofetch'
 
+export interface InvalidationRule {
+    route: string;
+    methods?: string[];
+    purgeUrls?: string[];
+    purgeTags?: string[];
+    purgeEverything?: boolean;
+}
+
 export interface ModuleOptions {
     zoneId?: string;
     apiToken?: string;
     endpoint?: string;
     autoPurge?: boolean;
     baseURL?: string;
+    checkHealth?: boolean;
+    invalidations?: InvalidationRule[];
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -23,7 +33,9 @@ export default defineNuxtModule<ModuleOptions>({
         apiToken: process.env.CLOUDFLARE_API_TOKEN,
         endpoint: 'https://api.cloudflare.com/client/v4',
         autoPurge: false,
-        baseURL: process.env.CF_PURGE_BASE_URL
+        baseURL: process.env.CF_PURGE_BASE_URL,
+        checkHealth: false,
+        invalidations: []
     },
     setup(options, nuxt) {
         const resolver = createResolver(import.meta.url)
@@ -41,6 +53,8 @@ export default defineNuxtModule<ModuleOptions>({
                 zoneId: options.zoneId,
                 apiToken: options.apiToken,
                 endpoint,
+                baseURL: options.baseURL,
+                invalidations: options.invalidations,
             }
         )
 
@@ -116,5 +130,7 @@ export default defineNuxtModule<ModuleOptions>({
 declare module 'h3' {
     interface H3EventContext {
         purgeCache: (urls: string[]) => Promise<boolean>;
+        purgeTags: (tags: string[]) => Promise<boolean>;
+        purgeEverything: () => Promise<boolean>;
     }
 }

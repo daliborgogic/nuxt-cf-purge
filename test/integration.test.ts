@@ -38,7 +38,10 @@ describe('nuxt-cf-purge Integration Tests', async () => {
             cfPurge: {
                 zoneId: 'mock-zone-id-123',
                 apiToken: 'mock-token-xyz',
-                endpoint: '/api/cloudflare-mock'
+                endpoint: '/api/cloudflare-mock',
+                invalidations: [
+                    { route: '/api/mutate', purgeTags: ['automated-tag'] }
+                ]
             }
         }
     })
@@ -49,6 +52,29 @@ describe('nuxt-cf-purge Integration Tests', async () => {
             body: { urls: ['https://example.com/asset.css'] }
         })
         expect(response).toEqual({ success: true })
+    })
+
+    it('should execute tag purges successfully', async () => {
+        const response = await $fetch('/api/test-purge', {
+            method: 'POST',
+            body: { tags: ['tag-1', 'tag-2'] }
+        })
+        expect(response).toEqual({ success: true })
+    })
+
+    it('should execute global purge successfully', async () => {
+        const response = await $fetch('/api/test-purge', {
+            method: 'POST',
+            body: { everything: true }
+        })
+        expect(response).toEqual({ success: true })
+    })
+
+    it('should trigger automated invalidations when a mapped route is hit', async () => {
+        // We can't easily verify the background fetch in this integration test without 
+        // more complex mocking, but we can verify the route doesn't crash
+        const response = await $fetch('/api/mutate', { method: 'POST' })
+        expect(response).toEqual({ status: 'mutated' })
     })
 
     it('should chunk inputs and hit the endpoint multiple times if over 100 items', async () => {
