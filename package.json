@@ -1,6 +1,6 @@
 {
     "name": "nuxt-cf-purge",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Blazing fast, parallel-chunked Cloudflare Edge Cache purger for Nuxt 4 / Nitro",
     "license": "MIT",
     "type": "module",
@@ -20,7 +20,8 @@
         "dist"
     ],
     "dependencies": {
-        "defu": "^6.1.4"
+        "defu": "^6.1.4",
+        "ofetch": "^1.3.4"
     },
     "peerDependencies": {
         "@nuxt/kit": "^3.11.0 || ^4.0.0"
