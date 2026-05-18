@@ -35,10 +35,8 @@ jobs:
       - name: Build Module
         run: pnpm run build
 
-      - name: Debug OIDC
-        run: |
-          echo "OIDC URL present: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL != '' }}"
-          echo "OIDC TOKEN present: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN != '' }}"
+      - name: Run Tests
+        run: pnpm test
 
       - name: Publish to npm
         run: pnpm publish --no-git-checks --access public --provenance --registry https://registry.npmjs.org/
