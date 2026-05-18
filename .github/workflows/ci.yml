@@ -8,23 +8,35 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - uses: actions/checkout@v4
-      - run: corepack enable
-      - uses: actions/setup-node@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: 24
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm install
-      - name: Lint
-        run: npm run lint || echo "No lint script found"
-      - name: Test
-        run: npm test
-      - name: Build
-        run: npm run build
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint Source Code
+        run: pnpm run lint || echo "No lint script found"
+
+      - name: Build Module Bundle
+        run: pnpm run build
+
+      - name: Run Test Suite
+        run: pnpm test
