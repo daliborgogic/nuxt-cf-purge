@@ -119,13 +119,17 @@ export default defineNitroPlugin((nitroApp) => {
                      * Serverless Stability: waitUntil
                      * Signal the runtime (Cloudflare Workers/Pages) to keep the process alive
                      * until the asynchronous network calls to Cloudflare API are finished.
+                     * We execute all tasks in parallel to minimize CPU runtime.
                      */
                     const executePurge = async () => {
-                        if (rule.purgeEverything) await event.context.purgeEverything();
-                        if (rule.purgeUrls) await event.context.purgeCache(rule.purgeUrls);
-                        if (rule.purgeTags) await event.context.purgeTags(rule.purgeTags);
-                        if (rule.purgeHosts) await event.context.purgeHosts(rule.purgeHosts);
-                        if (rule.purgePrefixes) await event.context.purgePrefixes(rule.purgePrefixes);
+                        const tasks: Promise<boolean>[] = [];
+                        if (rule.purgeEverything) tasks.push(event.context.purgeEverything());
+                        if (rule.purgeUrls) tasks.push(event.context.purgeCache(rule.purgeUrls));
+                        if (rule.purgeTags) tasks.push(event.context.purgeTags(rule.purgeTags));
+                        if (rule.purgeHosts) tasks.push(event.context.purgeHosts(rule.purgeHosts));
+                        if (rule.purgePrefixes) tasks.push(event.context.purgePrefixes(rule.purgePrefixes));
+                        
+                        await Promise.all(tasks);
                     };
 
                     if (event.waitUntil) {

@@ -105,23 +105,30 @@ export default defineNuxtConfig({
 ## Usage
 
 The module injects several helpers into the Nitro event context.
-
 ### URL Purging
+> **Note:** Cloudflare requires **absolute URLs** (e.g., `https://example.com/page-1`). Relative paths (e.g., `/page-1`) will not be recognized by the Cache API.
+
 ```typescript
 await event.context.purgeCache(['https://example.com/page-1'])
 ```
 
-### Cache-Tag Purging (Enterprise/Business)
+### Cache-Tag Purging
+> **Plan Requirement:** This is a **Cloudflare Enterprise/Business** feature.
+
 ```typescript
 await event.context.purgeTags(['blog-posts', 'user-profile'])
 ```
 
 ### Host Purging
+> **Plan Requirement:** This is a **Cloudflare Enterprise** feature.
+
 ```typescript
 await event.context.purgeHosts(['shop.example.com', 'dev.example.com'])
 ```
 
 ### Prefix Purging
+> **Plan Requirement:** This is a **Cloudflare Enterprise** feature.
+
 ```typescript
 await event.context.purgePrefixes(['https://example.com/assets/images'])
 ```
@@ -135,8 +142,11 @@ await event.context.purgeEverything()
 
 You can automate your cache management by defining `invalidations` in your config. This eliminates the need to manually call purge helpers inside your business logic.
 
+> **Important:** Features like `purgeTags`, `purgeHosts`, and `purgePrefixes` still require their respective Cloudflare Plan tiers even when automated.
+
 ```typescript
 cfPurge: {
+...
   invalidations: [
     {
       // Matches /api/posts and /api/posts/123
