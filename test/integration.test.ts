@@ -32,7 +32,7 @@ describe('nuxt-cf-purge Integration Tests', async () => {
     await setup({
         rootDir: resolve(projectRoot, 'playground'),
         nuxtConfig: {
-            // Rešenje: Prosleđujemo prekompajliranu referencu modula umesto relativne putanje u obliku stringa
+            // Solution: Pass the precompiled module reference instead of a relative path string
             modules: [
                 MyCloudflareModule
             ],
