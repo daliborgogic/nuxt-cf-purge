@@ -28,23 +28,39 @@ yarn add nuxt-cf-purge
 
 ## Setup
 
-Add `nuxt-cf-purge` to the `modules` section of `nuxt.config.ts`:
+Add `nuxt-cf-purge` to the `modules` section of `nuxt.config.ts`. 
+
+### Method A: Environment Variables (Recommended)
+The module automatically looks for these variables. If they are set, no further configuration is needed in your code.
+
+```bash
+# .env
+CLOUDFLARE_ZONE_ID=your-zone-id
+CLOUDFLARE_API_TOKEN=your-api-token
+```
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['nuxt-cf-purge']
+})
+```
+
+### Method B: Manual Configuration
+Use this if you need to override environment variables or handle multiple environments manually.
 
 ```typescript
 export default defineNuxtConfig({
-  modules: [
-    'nuxt-cf-purge'
-  ],
+  modules: ['nuxt-cf-purge'],
 
   cfPurge: {
-    // Optional: Defaults to process.env.CLOUDFLARE_ZONE_ID
     zoneId: 'your-zone-id',
-    
-    // Optional: Defaults to process.env.CLOUDFLARE_API_TOKEN
     apiToken: 'your-api-token'
   }
 })
 ```
+
+> **Note:** While the `cfPurge` config block is optional, the **credentials themselves are required** for the purger to work. If neither environment variables nor config values are found, the module will log a warning and return `false` during execution without crashing your server.
 
 ## Usage
 
