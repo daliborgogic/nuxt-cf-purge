@@ -36,5 +36,5 @@ jobs:
         run: pnpm run build
 
       - name: Publish to npm
-        run: npm publish --access public --provenance --reg https://registry.npmjs.org/
+        run: npm publish --provenance
 
