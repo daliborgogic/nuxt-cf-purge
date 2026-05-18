@@ -1,13 +1,9 @@
 {
     "name": "nuxt-cf-purge",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "Blazing fast, parallel-chunked Cloudflare Edge Cache purger for Nuxt 4 / Nitro",
     "license": "MIT",
     "type": "module",
-    "publishConfig": {
-        "access": "public",
-        "registry": "https://registry.npmjs.org/"
-    },
     "scripts": {
         "build": "nuxt-module-build build",
         "dev": "nuxi dev playground",
