@@ -32,15 +32,21 @@ describe('nuxt-cf-purge Integration Tests', async () => {
     await setup({
         rootDir: resolve(projectRoot, 'playground'),
         nuxtConfig: {
+            // Rešenje: Prosleđujemo prekompajliranu referencu modula umesto relativne putanje u obliku stringa
             modules: [
-                '../src/module'
+                MyCloudflareModule
             ],
             cfPurge: {
                 zoneId: 'mock-zone-id-123',
                 apiToken: 'mock-token-xyz',
                 endpoint: '/api/cloudflare-mock',
                 invalidations: [
-                    { route: '/api/mutate', purgeTags: ['automated-tag'] }
+                    { 
+                        route: '/api/mutate', 
+                        purgeTags: ['automated-tag'],
+                        purgeHosts: ['shop.example.com'],
+                        purgePrefixes: ['https://example.com/blog']
+                    }
                 ]
             }
         }
