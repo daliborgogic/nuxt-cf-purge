@@ -9,6 +9,7 @@ Blazing fast, parallel-chunked Cloudflare Edge Cache purger for Nuxt 4 and Nitro
 
 - 🚀 **Parallel Execution:** Purges multiple batches concurrently for maximum performance.
 - 📦 **Automatic Chunking:** Automatically splits large URL lists into batches of 100 to respect Cloudflare API limits.
+- 🧹 **Build-Time Auto Purge:** Automatically reads your build manifest and purges new assets from Cloudflare upon build completion.
 - 🛡️ **Type Safe:** Fully typed `purgeCache` helper added directly to the H3 event context.
 - 🔧 **Zero Config:** Falls back to standard Cloudflare environment variables out of the box.
 - 🧪 **Test-Ready:** Includes a configurable endpoint for local mocking and integration testing.
@@ -55,12 +56,32 @@ export default defineNuxtConfig({
 
   cfPurge: {
     zoneId: 'your-zone-id',
-    apiToken: 'your-api-token'
+    apiToken: 'your-api-token',
+    // Required for Build-Time Auto Purge
+    baseURL: 'https://example.com',
+    autoPurge: true
   }
 })
 ```
 
 > **Note:** While the `cfPurge` config block is optional, the **credentials themselves are required** for the purger to work. If neither environment variables nor config values are found, the module will log a warning and return `false` during execution without crashing your server.
+
+## Build-Time Auto Purge
+
+If you enable `autoPurge`, the module hooks into the Nuxt build process (`build:manifest`). It extracts all generated JS, CSS, and static asset paths from the manifest and purges them from Cloudflare immediately.
+
+**Requirements:**
+1. `autoPurge: true`
+2. `baseURL`: Your production domain (e.g., `https://example.com`). This is needed to construct the absolute URLs required by the Cloudflare API.
+
+```typescript
+export default defineNuxtConfig({
+  cfPurge: {
+    autoPurge: true,
+    baseURL: 'https://example.com'
+  }
+})
+```
 
 ## Usage
 
@@ -97,6 +118,8 @@ await event.context.purgeCache(massiveList)
 | --- | --- | --- |
 | `zoneId` | `CLOUDFLARE_ZONE_ID` | Your Cloudflare Zone ID. |
 | `apiToken` | `CLOUDFLARE_API_TOKEN` | A Cloudflare API Token with `Zone.Cache Purge` permissions. |
+| `autoPurge` | - | Enable automatic purging on build completion (default: `false`). |
+| `baseURL` | `CF_PURGE_BASE_URL` | Your production domain (required for `autoPurge`). |
 | `endpoint` | - | Custom API endpoint (ignored in production; used for testing). |
 
 ## Error Handling
