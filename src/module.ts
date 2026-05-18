@@ -7,6 +7,8 @@ export interface InvalidationRule {
     methods?: string[];
     purgeUrls?: string[];
     purgeTags?: string[];
+    purgeHosts?: string[];
+    purgePrefixes?: string[];
     purgeEverything?: boolean;
 }
 
@@ -131,6 +133,8 @@ declare module 'h3' {
     interface H3EventContext {
         purgeCache: (urls: string[]) => Promise<boolean>;
         purgeTags: (tags: string[]) => Promise<boolean>;
+        purgeHosts: (hosts: string[]) => Promise<boolean>;
+        purgePrefixes: (prefixes: string[]) => Promise<boolean>;
         purgeEverything: () => Promise<boolean>;
     }
 }

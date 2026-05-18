@@ -71,6 +71,18 @@ export default defineNitroPlugin(async (nitroApp) => {
             return results.every(r => r === true);
         };
 
+        event.context.purgeHosts = async (hosts: string[]) => {
+            const chunks = chunkArray(hosts, 100);
+            const results = await Promise.all(chunks.map(chunk => cloudflarePurge({ hosts: chunk })));
+            return results.every(r => r === true);
+        };
+
+        event.context.purgePrefixes = async (prefixes: string[]) => {
+            const chunks = chunkArray(prefixes, 100);
+            const results = await Promise.all(chunks.map(chunk => cloudflarePurge({ prefixes: chunk })));
+            return results.every(r => r === true);
+        };
+
         event.context.purgeEverything = () => cloudflarePurge({ purge_everything: true });
 
         // Smart Invalidations Middleware
@@ -89,6 +101,8 @@ export default defineNitroPlugin(async (nitroApp) => {
                     if (rule.purgeEverything) event.context.purgeEverything();
                     if (rule.purgeUrls) event.context.purgeCache(rule.purgeUrls);
                     if (rule.purgeTags) event.context.purgeTags(rule.purgeTags);
+                    if (rule.purgeHosts) event.context.purgeHosts(rule.purgeHosts);
+                    if (rule.purgePrefixes) event.context.purgePrefixes(rule.purgePrefixes);
                 }
             }
         }

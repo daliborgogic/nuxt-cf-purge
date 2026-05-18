@@ -107,6 +107,16 @@ await event.context.purgeCache(['https://example.com/page-1'])
 await event.context.purgeTags(['blog-posts', 'user-profile'])
 ```
 
+### Host Purging
+```typescript
+await event.context.purgeHosts(['shop.example.com', 'dev.example.com'])
+```
+
+### Prefix Purging
+```typescript
+await event.context.purgePrefixes(['https://example.com/assets/images'])
+```
+
 ### Global Purge (Nuke Everything)
 ```typescript
 await event.context.purgeEverything()
@@ -127,7 +137,11 @@ cfPurge: {
       // URLs to purge when the route is hit
       purgeUrls: ['/blog', '/api/posts'],
       // Tags to purge
-      purgeTags: ['posts-archive']
+      purgeTags: ['posts-archive'],
+      // Hosts to purge
+      purgeHosts: ['blog.example.com'],
+      // Prefixes to purge
+      purgePrefixes: ['https://example.com/static']
     }
   ]
 }

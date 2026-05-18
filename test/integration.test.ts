@@ -70,6 +70,22 @@ describe('nuxt-cf-purge Integration Tests', async () => {
         expect(response).toEqual({ success: true })
     })
 
+    it('should execute host purges successfully', async () => {
+        const response = await $fetch('/api/test-purge', {
+            method: 'POST',
+            body: { hosts: ['shop.example.com'] }
+        })
+        expect(response).toEqual({ success: true })
+    })
+
+    it('should execute prefix purges successfully', async () => {
+        const response = await $fetch('/api/test-purge', {
+            method: 'POST',
+            body: { prefixes: ['https://example.com/blog'] }
+        })
+        expect(response).toEqual({ success: true })
+    })
+
     it('should trigger automated invalidations when a mapped route is hit', async () => {
         // We can't easily verify the background fetch in this integration test without 
         // more complex mocking, but we can verify the route doesn't crash

@@ -21,6 +21,16 @@ export default defineEventHandler(async (event) => {
             return { success: false, errors: ['Tag payload too large'] }
         }
 
+        if (body.hosts && body.hosts.length > 100) {
+            setResponseStatus(event, 400)
+            return { success: false, errors: ['Host payload too large'] }
+        }
+
+        if (body.prefixes && body.prefixes.length > 100) {
+            setResponseStatus(event, 400)
+            return { success: false, errors: ['Prefix payload too large'] }
+        }
+
         return { success: true, result: { id: 'mock-id' } }
     }
 
