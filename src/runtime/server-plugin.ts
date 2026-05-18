@@ -1,28 +1,25 @@
-import { defineNitroPlugin, useRuntimeConfig, defineEventHandler } from '#imports'
+import { defineNitroPlugin, useRuntimeConfig } from '#imports'
 
-export default defineNitroPlugin(async (nitroApp) => {
+export default defineNitroPlugin((nitroApp) => {
     const config = useRuntimeConfig();
 
     const zoneId = config.cfPurge?.zoneId;
     const apiToken = config.cfPurge?.apiToken;
-    const endpoint = config.cfPurge?.endpoint;
+    const endpoint = config.cfPurge?.endpoint?.replace(/\/$/, '') || 'https://api.cloudflare.com/client/v4';
     const checkHealth = config.cfPurge?.checkHealth;
     const invalidations = config.cfPurge?.invalidations || [];
 
     if (!zoneId || !apiToken) {
-        console.warn('[nuxt-cf-purge] Missing Cloudflare credentials. Execution restricted.');
+        console.warn('[nuxt-cf-purge] Missing Cloudflare credentials. Runtime execution restricted.');
     }
 
-    // Startup Health Check
+    // Startup Health Check - Executed asynchronously to avoid blocking Nitro initialization
     if (checkHealth && zoneId && apiToken) {
-        try {
-            await $fetch(`${endpoint}/user/tokens/verify`, {
-                headers: { 'Authorization': `Bearer ${apiToken}` }
-            });
-            console.info('[nuxt-cf-purge] Cloudflare credentials verified.');
-        } catch (e) {
-            console.error('[nuxt-cf-purge] Cloudflare credential verification failed. Check your API Token.', e);
-        }
+        $fetch(`${endpoint}/user/tokens/verify`, {
+            headers: { 'Authorization': `Bearer ${apiToken}` }
+        })
+        .then(() => console.info('[nuxt-cf-purge] Cloudflare credentials successfully verified.'))
+        .catch((e) => console.error('[nuxt-cf-purge] Cloudflare token verification failed on startup. Check API permissions.', e.message));
     }
 
     const chunkArray = <T>(array: T[], size: number): T[][] => {
@@ -33,7 +30,7 @@ export default defineNitroPlugin(async (nitroApp) => {
         return chunks;
     };
 
-    const cloudflarePurge = async (payload: any) => {
+    const cloudflarePurge = async (payload: any): Promise<boolean> => {
         if (!zoneId || !apiToken) return false;
         try {
             await $fetch(`${endpoint}/zones/${zoneId}/purge_cache`, {
@@ -47,18 +44,19 @@ export default defineNitroPlugin(async (nitroApp) => {
                     console.error('[nuxt-cf-purge] Cloudflare API Error:', {
                         status: response.status,
                         statusText: response.statusText,
-                        errors: response._data?.errors || 'Unknown error'
+                        errors: response._data?.errors || 'Unknown upstream validation error.'
                     });
                 }
             });
             return true;
         } catch (e) {
+            console.error('[nuxt-cf-purge] Network context failure during purge execution:', e);
             return false;
         }
     };
 
     nitroApp.hooks.hook('request', (event) => {
-        // Core Purge Methods
+        // Assign methods by reference - no new allocations per request
         event.context.purgeCache = async (urls: string[]) => {
             const chunks = chunkArray(urls, 100);
             const results = await Promise.all(chunks.map(chunk => cloudflarePurge({ files: chunk })));
@@ -97,12 +95,20 @@ export default defineNitroPlugin(async (nitroApp) => {
                     : path === rule.route;
 
                 if (match && ruleMethods.includes(method)) {
-                    // Trigger purges in background to not block response
-                    if (rule.purgeEverything) event.context.purgeEverything();
-                    if (rule.purgeUrls) event.context.purgeCache(rule.purgeUrls);
-                    if (rule.purgeTags) event.context.purgeTags(rule.purgeTags);
-                    if (rule.purgeHosts) event.context.purgeHosts(rule.purgeHosts);
-                    if (rule.purgePrefixes) event.context.purgePrefixes(rule.purgePrefixes);
+                    // SERVERLESS PROTECTION: Use waitUntil to keep the process alive until network calls finish
+                    const executePurge = async () => {
+                        if (rule.purgeEverything) await event.context.purgeEverything();
+                        if (rule.purgeUrls) await event.context.purgeCache(rule.purgeUrls);
+                        if (rule.purgeTags) await event.context.purgeTags(rule.purgeTags);
+                        if (rule.purgeHosts) await event.context.purgeHosts(rule.purgeHosts);
+                        if (rule.purgePrefixes) await event.context.purgePrefixes(rule.purgePrefixes);
+                    };
+
+                    if (event.waitUntil) {
+                        event.waitUntil(executePurge());
+                    } else {
+                        executePurge().catch(() => {});
+                    }
                 }
             }
         }
