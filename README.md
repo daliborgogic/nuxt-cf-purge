@@ -16,6 +16,15 @@ Blazing fast, parallel-chunked Cloudflare Edge Cache purger for Nuxt 4 and Nitro
 - 🔧 **Zero Config:** Falls back to standard Cloudflare environment variables out of the box.
 - 🧪 **Test-Ready:** Includes a configurable endpoint for local mocking and integration testing.
 
+## Architecture & Stability
+
+This module is built for high-performance production environments and enterprise-grade reliability.
+
+- 💎 **Zero Allocation Runtime:** Core purge functions are initialized once during startup and assigned by reference to the request context. This eliminates per-request memory overhead and Garbage Collection pressure.
+- ⚡ **Serverless-First:** Uses Nitro's `event.waitUntil` to ensure background purge tasks are completed on serverless platforms (Cloudflare Workers/Pages) even after the HTTP response is sent.
+- 🩺 **Non-Blocking Initialization:** Startup health checks are asynchronous. Your application will boot instantly even if the Cloudflare API is temporarily unreachable.
+- 🛡️ **Parallel Execution:** High-concurrency network calls with automatic chunking ensure your cache is cleared as fast as possible while respecting Cloudflare API rate limits.
+
 ## Installation
 
 ```bash

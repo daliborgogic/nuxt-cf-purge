@@ -5,6 +5,7 @@ export default defineNitroPlugin((nitroApp) => {
 
     const zoneId = config.cfPurge?.zoneId;
     const apiToken = config.cfPurge?.apiToken;
+    // Normalize endpoint and fallback to official Cloudflare API
     const endpoint = config.cfPurge?.endpoint?.replace(/\/$/, '') || 'https://api.cloudflare.com/client/v4';
     const checkHealth = config.cfPurge?.checkHealth;
     const invalidations = config.cfPurge?.invalidations || [];
@@ -13,7 +14,11 @@ export default defineNitroPlugin((nitroApp) => {
         console.warn('[nuxt-cf-purge] Missing Cloudflare credentials. Runtime execution restricted.');
     }
 
-    // Startup Health Check - Executed asynchronously to avoid blocking Nitro initialization
+    /**
+     * Startup Health Check
+     * Executed asynchronously to avoid blocking Nitro initialization/deployment.
+     * Prevents Cloudflare API outages from crashing the application startup.
+     */
     if (checkHealth && zoneId && apiToken) {
         $fetch(`${endpoint}/user/tokens/verify`, {
             headers: { 'Authorization': `Bearer ${apiToken}` }
@@ -22,6 +27,10 @@ export default defineNitroPlugin((nitroApp) => {
         .catch((e) => console.error('[nuxt-cf-purge] Cloudflare token verification failed on startup. Check API permissions.', e.message));
     }
 
+    /**
+     * Utility to split arrays into Cloudflare-compatible chunks.
+     * Declared once at plugin level to prevent per-request memory allocation.
+     */
     const chunkArray = <T>(array: T[], size: number): T[][] => {
         const chunks: T[][] = [];
         for (let i = 0; i < array.length; i += size) {
@@ -30,6 +39,10 @@ export default defineNitroPlugin((nitroApp) => {
         return chunks;
     };
 
+    /**
+     * Centralized Cloudflare API request handler.
+     * Reused by all purge methods to maintain clean logs and uniform error handling.
+     */
     const cloudflarePurge = async (payload: any): Promise<boolean> => {
         if (!zoneId || !apiToken) return false;
         try {
@@ -56,7 +69,11 @@ export default defineNitroPlugin((nitroApp) => {
     };
 
     nitroApp.hooks.hook('request', (event) => {
-        // Assign methods by reference - no new allocations per request
+        /**
+         * Core Purge Methods
+         * Assigned to event context by reference.
+         * Zero new allocations per request, minimizing GC pressure under high traffic.
+         */
         event.context.purgeCache = async (urls: string[]) => {
             const chunks = chunkArray(urls, 100);
             const results = await Promise.all(chunks.map(chunk => cloudflarePurge({ files: chunk })));
@@ -83,7 +100,10 @@ export default defineNitroPlugin((nitroApp) => {
 
         event.context.purgeEverything = () => cloudflarePurge({ purge_everything: true });
 
-        // Smart Invalidations Middleware
+        /**
+         * Smart Invalidations Middleware
+         * Intercepts mutating requests (POST/PUT/PATCH/DELETE) and triggers purges.
+         */
         if (invalidations.length > 0) {
             const path = event.path.split('?')[0];
             const method = event.method.toUpperCase();
@@ -95,7 +115,11 @@ export default defineNitroPlugin((nitroApp) => {
                     : path === rule.route;
 
                 if (match && ruleMethods.includes(method)) {
-                    // SERVERLESS PROTECTION: Use waitUntil to keep the process alive until network calls finish
+                    /**
+                     * Serverless Stability: waitUntil
+                     * Signal the runtime (Cloudflare Workers/Pages) to keep the process alive
+                     * until the asynchronous network calls to Cloudflare API are finished.
+                     */
                     const executePurge = async () => {
                         if (rule.purgeEverything) await event.context.purgeEverything();
                         if (rule.purgeUrls) await event.context.purgeCache(rule.purgeUrls);
@@ -107,6 +131,7 @@ export default defineNitroPlugin((nitroApp) => {
                     if (event.waitUntil) {
                         event.waitUntil(executePurge());
                     } else {
+                        // Fallback for standard Node environments
                         executePurge().catch(() => {});
                     }
                 }
