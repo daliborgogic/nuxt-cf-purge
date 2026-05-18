@@ -25,6 +25,14 @@ This module is built for high-performance production environments and enterprise
 - 🩺 **Non-Blocking Initialization:** Startup health checks are asynchronous. Your application will boot instantly even if the Cloudflare API is temporarily unreachable.
 - 🛡️ **Parallel Execution:** High-concurrency network calls with automatic chunking ensure your cache is cleared as fast as possible while respecting Cloudflare API rate limits.
 
+## ⚠️ Cloudflare Tier Restrictions
+
+Please note that while `purgeCache` (URLs) and `purgeEverything` are available on all Cloudflare plans, certain advanced eviction methods are restricted by Cloudflare's API:
+* **`purgeTags`**: Requires a Cloudflare Enterprise plan (or a specialized Pages/Workers configuration).
+* **`purgeHosts` & `purgePrefixes`**: Strictly require a Cloudflare Enterprise plan.
+
+If these methods are invoked on an unsupported tier, the module will gracefully log a `400 Bad Request` upstream API error via Nitro's server logger without crashing your application runtime.
+
 ## Installation
 
 ```bash
